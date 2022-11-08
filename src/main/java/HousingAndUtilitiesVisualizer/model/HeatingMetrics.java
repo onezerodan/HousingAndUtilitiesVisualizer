@@ -19,6 +19,12 @@ public class HeatingMetrics {
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
+    public HeatingMetrics(Date dateAdded, Long value, User user) {
+        this.dateAdded = dateAdded;
+        this.value = value;
+        this.user = user;
+    }
+
     public Long getId() {
         return id;
     }

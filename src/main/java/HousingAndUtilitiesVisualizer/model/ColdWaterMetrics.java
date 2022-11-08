@@ -7,6 +7,7 @@ import java.util.Date;
 @Table(name = "cold_water_metrics")
 public class ColdWaterMetrics {
 
+
     @Id
     @GeneratedValue
     private Long id;
@@ -16,13 +17,15 @@ public class ColdWaterMetrics {
 
     private Long value;
 
-    @ManyToOne
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
-    public ColdWaterMetrics(Date dateAdded, Long value) {
+    public ColdWaterMetrics(Date dateAdded, Long value, User user) {
         this.dateAdded = dateAdded;
         this.value = value;
+        this.user = user;
     }
 
     public Long getId() {

@@ -19,9 +19,10 @@ public class HotWaterMetrics {
     @JoinColumn(name="user_Id", nullable=false)
     private User user;
 
-    public HotWaterMetrics(Date dateAdded, Long value) {
+    public HotWaterMetrics(Date dateAdded, Long value, User user) {
         this.dateAdded = dateAdded;
         this.value = value;
+        this.user = user;
     }
 
     public Long getId() {

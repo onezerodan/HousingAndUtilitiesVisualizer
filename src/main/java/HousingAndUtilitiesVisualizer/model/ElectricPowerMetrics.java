@@ -23,10 +23,11 @@ public class ElectricPowerMetrics {
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
-    public ElectricPowerMetrics(Date dateAdded, Long valueDay, Long valueNight) {
+    public ElectricPowerMetrics(Date dateAdded, Long valueDay, Long valueNight, User user) {
         this.dateAdded = dateAdded;
         this.valueDay = valueDay;
         this.valueNight = valueNight;
+        this.user = user;
     }
 
     public Long getId() {
