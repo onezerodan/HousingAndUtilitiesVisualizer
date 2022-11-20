@@ -55,7 +55,7 @@ public class AddressUtil {
         return doc;
     }
 
-    public HashMap<String, String> findAllMatchingAddresses(String addressToSearch) {
+    public HashMap<String, String> findAllMatchingAddresses(String addressToSearch) throws NullPointerException {
 
         HashMap<String, String> result = new HashMap<>();
 
@@ -75,21 +75,21 @@ public class AddressUtil {
         for (Element houseRow : searchedHousesRows) {
             String addressStr = houseRow.select("td").select("a").text();
             String href = houseRow.select("td").select("a").attr("href");
-            if (!addressStr.equals("") && !href.equals("")) result.put(addressStr, href);
+            if (!addressStr.equals("") && !href.equals("")) result.put(addressStr, BASE_URL + href);
         }
         return result;
     }
 
     private String getManagementCompanyUrl(String addressUrl) {
-        Document houseDoc = getDocumentDynamic(BASE_URL + addressUrl);
+        Document houseDoc = getDocumentDynamic(addressUrl);
         String managementCompanyUrl = houseDoc.select("body > section.p-5 > div.container.mt-5 > div > div:nth-child(2) > span.address > a").attr("href");
-        return managementCompanyUrl;
+        return BASE_URL + managementCompanyUrl;
     }
 
 
     public String getManagementCompanyInfo(String addressUrl) {
         StringBuilder result = new StringBuilder();
-        Document mngmtCompanyDoc = getDocument(BASE_URL + getManagementCompanyUrl(addressUrl));
+        Document mngmtCompanyDoc = getDocument(getManagementCompanyUrl(addressUrl));
         Elements infoElements = mngmtCompanyDoc.selectXpath("/html/body/section[3]/div/div[2]/div[2]").first().children();
 
         for (Element infoElement: infoElements) {
