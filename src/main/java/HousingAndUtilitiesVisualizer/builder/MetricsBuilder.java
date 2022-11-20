@@ -28,6 +28,9 @@ public class MetricsBuilder {
         this.heatingMetrics = heatingMetrics;
     }
 
+    public MetricsBuilder() {
+    }
+
     public ColdWaterMetrics getColdWaterMetrics() {
         return coldWaterMetrics;
     }
