@@ -5,7 +5,7 @@ import java.util.Date;
 
 @Entity
 @Table(name = "cold_water_metrics")
-public class ColdWaterMetrics {
+public class ColdWaterMetrics extends CommonMetrics {
 
 
     @Id
