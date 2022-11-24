@@ -1,6 +1,7 @@
 package HousingAndUtilitiesVisualizer.bot;
 
 
+import HousingAndUtilitiesVisualizer.service.TimeService;
 import HousingAndUtilitiesVisualizer.util.AddressUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,7 +18,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +34,9 @@ public class TgBot extends TelegramLongPollingBot {
 
     @Autowired
     AddressUtil addressUtil;
+
+    @Autowired
+    TimeService timeService;
 
     Logger log = LogManager.getLogger(TgBot.class);
 
@@ -80,7 +86,17 @@ public class TgBot extends TelegramLongPollingBot {
                             log.error(e.getMessage(), e);
                         }
                     }
+
+                    case ENTER_COLD_WATER_METRICS, ENTER_ELECTRIC_POWER_METRICS, ENTER_HOT_WATER_METRICS, ENTER_HEATING_METRICS -> {
+                        try {
+                            saveCommonMetrics(update.getMessage());
+                        } catch (Exception e) {
+                            log.error(e.getMessage(), e);
+                        }
+                    }
+
                 }
+                return;
             }
         }
 
@@ -111,10 +127,125 @@ public class TgBot extends TelegramLongPollingBot {
                 }
                 sendMsg(chatId, managementCompanyInfo);
             }
+
+            case "metrics" -> {
+                String data = callbackData.split(":")[1];
+                try {
+                    execute(onMetricsInputCommand(chatId, data));
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+
+            }
         }
     }
 
-    private void parseCommonMetric(Message message) {
+    private void saveCommonMetrics(Message message) throws ParseException {
+        Long chatId = message.getChatId();
+        String[] text = message.getText().split(",");
+        // user = userRepository.find(chatId)
+
+        double metrics1 = 0;
+        double metrics2 = 0;
+
+        Date date = timeService.getCurrentDate();
+
+
+
+        // save data
+        switch (userState.get(chatId)) {
+            case ENTER_COLD_WATER_METRICS -> {
+                if (text.length == 1) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                else if (text.length == 2) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                        date = timeService.parseDateFromStr(text[1]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                // save
+                log.info("NEW COLD WATER METRICS from: " + chatId +
+                        " value: " + metrics1 +
+                        " date: " + date);
+            }
+
+            case ENTER_HOT_WATER_METRICS -> {
+                if (text.length == 1) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                else if (text.length == 2) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                        date = timeService.parseDateFromStr(text[1]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                log.info("NEW HOT WATER METRICS from: " + chatId +
+                        " value: " + metrics1 +
+                        " date: " + date);
+            }
+
+            case ENTER_HEATING_METRICS -> {
+                if (text.length == 1) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                else if (text.length == 2) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                        date = timeService.parseDateFromStr(text[1]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                log.info("NEW HEATING METRICS from: " + chatId +
+                        " value: " + metrics1 +
+                        " date: " + date);
+            }
+
+            case ENTER_ELECTRIC_POWER_METRICS -> {
+
+                if (text.length == 2) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                        metrics2 = Double.parseDouble(text[1]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                else if (text.length == 3) {
+                    try {
+                        metrics1 = Double.parseDouble(text[0]);
+                        metrics2 = Double.parseDouble(text[1]);
+                        date = timeService.parseDateFromStr(text[2]);
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
+                    }
+                }
+                log.info("NEW ELECTRIC POWER METRICS from: " + chatId +
+                        " value day: " + metrics1 +
+                        "value night: " + metrics2 +
+                        " date: " + date);
+            }
+        }
+
+
+
 
     }
 
@@ -168,6 +299,55 @@ public class TgBot extends TelegramLongPollingBot {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    private SendMessage onMetricsInputCommand(Long chatId, String chosenMetrics) {
+
+        String text = """
+                    Введите показания в формате:
+                    *xxx.xxx, dd-mm-yyy*,
+                    где
+                    *xxx.xxx - показания прибора,*
+                    *dd-mm-yyyy - дата снятия показаний*.
+                    
+                    Если вы укажете только показания, дата будет выбрана сегодняшней автоматически.
+                    """;
+
+        switch (chosenMetrics) {
+
+            case "coldWater" -> {
+                userState.put(chatId, UserState.ENTER_COLD_WATER_METRICS);
+            }
+
+            case "hotWater" -> {
+                userState.put(chatId, UserState.ENTER_HOT_WATER_METRICS);
+            }
+
+            case "heating" -> {
+                userState.put(chatId, UserState.ENTER_HEATING_METRICS);
+            }
+
+            case "electricPower" -> {
+                userState.put(chatId, UserState.ENTER_ELECTRIC_POWER_METRICS);
+                text = """
+                    Введите показания в формате:
+                    *xxx.xxx, yyy.yyy, dd-mm-yyy*,
+                    где
+                    *xxx.xxx - показания прибора за день*,
+                    *yyy.yyy - показания прибора за ночь*,
+                    *dd-mm-yyyy - дата снятия показаний*.
+                                        
+                    Если вы укажете только показания, дата будет выбрана сегодняшней автоматически.
+                    """;
+            }
+        }
+
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.enableMarkdown(true);
+        sendMessage.setChatId(chatId.toString());
+        sendMessage.setText(text);
+
+        return sendMessage;
     }
 
     private SendMessage onMetricsChooseCommand(Long chatId) {
