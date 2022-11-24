@@ -91,7 +91,8 @@ public class AddressUtil {
         StringBuilder result = new StringBuilder();
         Document mngmtCompanyDoc = getDocument(getManagementCompanyUrl(addressUrl));
         Elements infoElements = mngmtCompanyDoc.selectXpath("/html/body/section[3]/div/div[2]/div[2]").first().children();
-
+        String name = mngmtCompanyDoc.selectXpath("/html/body/section[3]/div/div[1]/div[1]/h3").first().text();
+        result.append("*" + name + "*").append("\n");
         for (Element infoElement: infoElements) {
             Element key = infoElement.getElementsByClass("col-4").first();
             Element value = infoElement.getElementsByClass("col-8").first();
