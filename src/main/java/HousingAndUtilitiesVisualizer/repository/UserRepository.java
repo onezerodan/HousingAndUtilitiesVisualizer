@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends CrudRepository<User, Long> {
-    User findByChatId(Long id);
+    User findByChatId(Long chatId);
+    boolean existsByChatId(Long chatId);
 }

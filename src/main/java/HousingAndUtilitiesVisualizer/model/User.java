@@ -29,6 +29,10 @@ public class User {
         this.address = address;
     }
 
+    public User(Long chatId) {
+        this.chatId = chatId;
+    }
+
     public User() {
     }
 
