@@ -30,6 +30,9 @@ public class ColdWaterMetrics extends Metrics {
         this.user = user;
     }
 
+    public ColdWaterMetrics() {
+    }
+
     public Long getId() {
         return id;
     }

@@ -32,6 +32,9 @@ public class ElectricPowerMetrics extends Metrics {
         this.user = user;
     }
 
+    public ElectricPowerMetrics() {
+    }
+
     public Long getId() {
         return id;
     }

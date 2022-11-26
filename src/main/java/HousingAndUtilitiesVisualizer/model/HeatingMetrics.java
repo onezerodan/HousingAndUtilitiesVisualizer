@@ -27,6 +27,9 @@ public class HeatingMetrics extends Metrics {
         this.user = user;
     }
 
+    public HeatingMetrics() {
+    }
+
     public Long getId() {
         return id;
     }

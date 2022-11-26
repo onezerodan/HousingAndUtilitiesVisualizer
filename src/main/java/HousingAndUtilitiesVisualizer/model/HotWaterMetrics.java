@@ -27,6 +27,9 @@ public class HotWaterMetrics extends Metrics {
         this.user = user;
     }
 
+    public HotWaterMetrics() {
+    }
+
     public Long getId() {
         return id;
     }
