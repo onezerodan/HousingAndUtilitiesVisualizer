@@ -1,4 +1,4 @@
 package HousingAndUtilitiesVisualizer.model;
 
-public class CommonMetrics {
+public class Metrics {
 }

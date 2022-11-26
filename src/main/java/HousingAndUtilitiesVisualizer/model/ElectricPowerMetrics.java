@@ -1,29 +1,31 @@
 package HousingAndUtilitiesVisualizer.model;
 
+import org.springframework.format.annotation.DateTimeFormat;
+
 import javax.persistence.*;
 import java.util.Date;
 
 @Entity
 @Table(name = "electric_power_metrics")
-public class ElectricPowerMetrics {
+public class ElectricPowerMetrics extends Metrics {
     @Id
     @GeneratedValue
     private Long id;
 
-    @Temporal(TemporalType.TIMESTAMP)
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME, pattern = "dd-MM-yyy")
     private Date dateAdded;
 
     @Column(name = "value_day")
-    private Long valueDay;
+    private Double valueDay;
 
     @Column(name = "value_night")
-    private Long valueNight;
+    private Double valueNight;
 
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
-    public ElectricPowerMetrics(Date dateAdded, Long valueDay, Long valueNight, User user) {
+    public ElectricPowerMetrics(Date dateAdded, Double valueDay, Double valueNight, User user) {
         this.dateAdded = dateAdded;
         this.valueDay = valueDay;
         this.valueNight = valueNight;
@@ -46,19 +48,19 @@ public class ElectricPowerMetrics {
         this.dateAdded = dateAdded;
     }
 
-    public Long getValueDay() {
+    public Double getValueDay() {
         return valueDay;
     }
 
-    public void setValueDay(Long valueDay) {
+    public void setValueDay(Double valueDay) {
         this.valueDay = valueDay;
     }
 
-    public Long getValueNight() {
+    public Double getValueNight() {
         return valueNight;
     }
 
-    public void setValueNight(Long valueNight) {
+    public void setValueNight(Double valueNight) {
         this.valueNight = valueNight;
     }
 
