@@ -70,6 +70,11 @@ public class MetricsService {
                 calendar.add(Calendar.YEAR, -100);
                 start = calendar.getTime();
             }
+
+            case TWO_WEEKS -> {
+                calendar.add(Calendar.WEEK_OF_MONTH, -2);
+                start = calendar.getTime();
+            }
         }
 
         result.put(MetricsEnum.COLD_WATER, coldWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
