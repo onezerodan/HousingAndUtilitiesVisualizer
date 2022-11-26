@@ -1,6 +1,9 @@
 package HousingAndUtilitiesVisualizer.bot;
 
 
+import HousingAndUtilitiesVisualizer.model.*;
+import HousingAndUtilitiesVisualizer.repository.UserRepository;
+import HousingAndUtilitiesVisualizer.service.MetricsService;
 import HousingAndUtilitiesVisualizer.service.TimeService;
 import HousingAndUtilitiesVisualizer.util.AddressUtil;
 import org.apache.logging.log4j.LogManager;
@@ -14,7 +17,6 @@ import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -37,6 +39,12 @@ public class TgBot extends TelegramLongPollingBot {
 
     @Autowired
     TimeService timeService;
+
+    @Autowired
+    UserRepository userRepository;
+
+    @Autowired
+    MetricsService metricsService;
 
     Logger log = LogManager.getLogger(TgBot.class);
 
@@ -61,9 +69,7 @@ public class TgBot extends TelegramLongPollingBot {
 
             log.info("NEW MESSAGE from: " + chatId + " text:" + text);
 
-            // Check if user exists in database by chatId
-            // . . .
-            // if not exists: ask for address and add link to database
+
 
 
 
@@ -89,7 +95,7 @@ public class TgBot extends TelegramLongPollingBot {
 
                     case ENTER_COLD_WATER_METRICS, ENTER_ELECTRIC_POWER_METRICS, ENTER_HOT_WATER_METRICS, ENTER_HEATING_METRICS -> {
                         try {
-                            saveCommonMetrics(update.getMessage());
+                            saveMetrics(update.getMessage());
                         } catch (Exception e) {
                             log.error(e.getMessage(), e);
                         }
@@ -101,15 +107,26 @@ public class TgBot extends TelegramLongPollingBot {
         }
 
         else if (update.hasCallbackQuery()) {
-            handleCallbackQuery(update.getCallbackQuery());
+            try {
+                handleCallbackQuery(update.getCallbackQuery());
+            } catch (TelegramApiException e) {
+                log.error(e.getMessage(), e);
+            }
         }
 
 
     }
 
-    private void handleCallbackQuery(CallbackQuery callbackQuery) {
+    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException {
         Long chatId = callbackQuery.getFrom().getId();
         String callbackData = callbackQuery.getData();
+        User user = null;
+
+        if (!userRepository.existsByChatId(chatId)) {
+            user = new User(chatId);
+            userRepository.save(user);
+        } else user = userRepository.findByChatId(chatId);
+
         switch (callbackData.split(":")[0]) {
             case "addr" -> {
                 String managementCompanyInfo = null;
@@ -125,7 +142,12 @@ public class TgBot extends TelegramLongPollingBot {
                             Возможно, вашим домом никто не управляет :(
                             """;
                 }
+
+                user.setAddress(callbackData.split(":")[1]);
+                userRepository.save(user);
+
                 sendMsg(chatId, managementCompanyInfo);
+
             }
 
             case "metrics" -> {
@@ -138,114 +160,113 @@ public class TgBot extends TelegramLongPollingBot {
 
             }
         }
+        sendAnswerCallbackQuery("", false, callbackQuery);
     }
 
-    private void saveCommonMetrics(Message message) throws ParseException {
+    private void saveMetrics(Message message) {
         Long chatId = message.getChatId();
-        String[] text = message.getText().split(",");
-        // user = userRepository.find(chatId)
+        String text = message.getText();
+
+        String answerText = "Данные сохранены.";
+
+        Class metricsClass = null;
+        // save data
+        switch (userState.get(chatId)) {
+            case ENTER_COLD_WATER_METRICS -> {
+                metricsClass = ColdWaterMetrics.class;
+                //metricsService.save(parseMetrics(ColdWaterMetrics.class, text, chatId));
+            }
+
+            case ENTER_HOT_WATER_METRICS -> {
+                metricsClass = HotWaterMetrics.class;
+                //metricsService.save(parseMetrics(HotWaterMetrics.class, text, chatId));
+            }
+
+            case ENTER_HEATING_METRICS -> {
+                metricsClass = HeatingMetrics.class;
+                //metricsService.save(parseMetrics(HeatingMetrics.class, text, chatId));
+            }
+
+            case ENTER_ELECTRIC_POWER_METRICS -> {
+                metricsClass = ElectricPowerMetrics.class;
+                //metricsService.save(parseMetrics(ElectricPowerMetrics.class, text, chatId));
+            }
+
+            default -> {
+                answerText = "Произошла ошибка.";
+                return;
+            }
+        }
+        Metrics parsedMetrics = null;
+        try {
+            parsedMetrics = parseMetrics(metricsClass, text, chatId);
+        } catch (IllegalArgumentException e) {
+            sendMsg(chatId, "Данные введены неверно.");
+            return;
+        }
+        metricsService.save(parsedMetrics);
+        sendMsg(chatId, answerText);
+    }
+
+    private Metrics parseMetrics(Class metricsClass, String text, Long chatId) throws IllegalArgumentException{
+        User user = userRepository.findByChatId(chatId);
+        String[] textMetrics = text.split(",");
+
 
         double metrics1 = 0;
         double metrics2 = 0;
 
         Date date = timeService.getCurrentDate();
 
+        if (metricsClass == ElectricPowerMetrics.class) {
+            if (textMetrics.length == 2) {
+                try {
+                    metrics1 = Double.parseDouble(textMetrics[0]);
+                    metrics2 = Double.parseDouble(textMetrics[1]);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new IllegalArgumentException();
+                }
+            } else if (textMetrics.length == 3) {
+                try {
+                    metrics1 = Double.parseDouble(textMetrics[0]);
+                    metrics2 = Double.parseDouble(textMetrics[1]);
+                    date = timeService.parseDateFromStr(textMetrics[2]);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new IllegalArgumentException();
+                }
+            } else throw new IllegalArgumentException();
 
+            return new ElectricPowerMetrics(date, metrics1, metrics2, user);
 
-        // save data
-        switch (userState.get(chatId)) {
-            case ENTER_COLD_WATER_METRICS -> {
-                if (text.length == 1) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
+        } else {
+            if (textMetrics.length == 1) {
+                try {
+                    metrics1 = Double.parseDouble(textMetrics[0]);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new IllegalArgumentException();
                 }
-                else if (text.length == 2) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                        date = timeService.parseDateFromStr(text[1]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
+            } else if (textMetrics.length == 2) {
+                try {
+                    metrics1 = Double.parseDouble(textMetrics[0]);
+                    date = timeService.parseDateFromStr(textMetrics[1]);
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                    throw new IllegalArgumentException();
                 }
-                // save
-                log.info("NEW COLD WATER METRICS from: " + chatId +
-                        " value: " + metrics1 +
-                        " date: " + date);
-            }
+            } else throw new IllegalArgumentException();
 
-            case ENTER_HOT_WATER_METRICS -> {
-                if (text.length == 1) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-                else if (text.length == 2) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                        date = timeService.parseDateFromStr(text[1]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-                log.info("NEW HOT WATER METRICS from: " + chatId +
-                        " value: " + metrics1 +
-                        " date: " + date);
-            }
-
-            case ENTER_HEATING_METRICS -> {
-                if (text.length == 1) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-                else if (text.length == 2) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                        date = timeService.parseDateFromStr(text[1]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-                log.info("NEW HEATING METRICS from: " + chatId +
-                        " value: " + metrics1 +
-                        " date: " + date);
-            }
-
-            case ENTER_ELECTRIC_POWER_METRICS -> {
-
-                if (text.length == 2) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                        metrics2 = Double.parseDouble(text[1]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-                else if (text.length == 3) {
-                    try {
-                        metrics1 = Double.parseDouble(text[0]);
-                        metrics2 = Double.parseDouble(text[1]);
-                        date = timeService.parseDateFromStr(text[2]);
-                    } catch (Exception e) {
-                        log.error(e.getMessage(), e);
-                    }
-                }
-                log.info("NEW ELECTRIC POWER METRICS from: " + chatId +
-                        " value day: " + metrics1 +
-                        "value night: " + metrics2 +
-                        " date: " + date);
+            if (metricsClass == ColdWaterMetrics.class) {
+                return new ColdWaterMetrics(date, metrics1, user);
+            } else if (metricsClass == HotWaterMetrics.class) {
+                return new HotWaterMetrics(date, metrics1, user);
+            } else if (metricsClass == HeatingMetrics.class) {
+                return new HeatingMetrics(date, metrics1, user);
             }
         }
-
-
-
+        return null;
 
     }
 
@@ -262,18 +283,27 @@ public class TgBot extends TelegramLongPollingBot {
         String text = message.getText().toLowerCase();
 
         switch (text) {
+            case "/start" -> {
+                if (!userRepository.existsByChatId(chatId)) {
+                    User user = new User(chatId);
+                    userRepository.save(user);
+                }
+            }
             case "/enter" -> {
                 execute(onMetricsChooseCommand(chatId));
                 userState.remove(chatId);
             }
             case "/uk" -> {
-                // if user exists
-                //  get info from link stored in database
-                // . . .
-                // else suggest addresses from user input
+                if (userRepository.existsByChatId(chatId)) {
+                    User user = userRepository.findByChatId(chatId);
+                    String mngmtCompanyUrl = user.getAddress();
+                    if (mngmtCompanyUrl != null) {
+                        sendMsg(chatId, addressUtil.getManagementCompanyInfo(mngmtCompanyUrl));
+                        return;
+                    }
+                }
                 userState.put(chatId, UserState.ENTER_ADDRESS);
                 sendMsg(chatId, "Введите адрес дома.");
-
             }
 
         }
