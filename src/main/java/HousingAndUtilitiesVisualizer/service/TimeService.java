@@ -16,7 +16,7 @@ public class TimeService {
 
     public Date getCurrentDate() {
         SimpleDateFormat formatter = new SimpleDateFormat(
-                "dd/MM/yyyy");
+                "dd-MM-yyyy");
         Date date = null;
         try {
             date = formatter.parse(formatter.format(new Date()));
