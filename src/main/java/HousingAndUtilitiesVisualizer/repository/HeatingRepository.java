@@ -9,7 +9,7 @@ import java.util.List;
 
 @Repository
 public interface HeatingRepository extends CrudRepository<HeatingMetrics, Long> {
-    List<HeatingMetrics> findByDateAddedBetween(Date start, Date end);
+    List<HeatingMetrics> findByDateAddedBetweenAndUserChatId(Date start, Date end, Long userId);
 
 }
 
