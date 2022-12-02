@@ -6,23 +6,22 @@ import HousingAndUtilitiesVisualizer.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.validation.constraints.NotNull;
 import java.util.*;
 
 @Service
 public class MetricsService {
 
     @Autowired
-    ColdWaterRepository coldWaterRepository;
+    private ColdWaterRepository coldWaterRepository;
     @Autowired
-    HotWaterRepository hotWaterRepository;
+    private HotWaterRepository hotWaterRepository;
     @Autowired
-    HeatingRepository heatingRepository;
+    private HeatingRepository heatingRepository;
     @Autowired
-    ElectricPowerRepository electricPowerRepository;
+    private ElectricPowerRepository electricPowerRepository;
 
     @Autowired
-    TimeService timeService;
+    private TimeService timeService;
 
 
     public void save(MetricsBuilder metricsBuilder) {
@@ -46,13 +45,13 @@ public class MetricsService {
         else if (metrics instanceof ElectricPowerMetrics) electricPowerRepository.save((ElectricPowerMetrics) metrics);
     }
 
-    public Map<MetricsEnum, List<?>> getMetricsForPeriod(Period period, User user) {
-        Map<MetricsEnum, List<?>> result = new HashMap<>();
+    public Map<MetricsType, List<?>> getMetricsForPeriod(Period period, User user) {
+        Map<MetricsType, List<?>> result = new HashMap<>();
 
         Calendar calendar = Calendar.getInstance();
 
         Date start = null;
-        Date end = end = timeService.getCurrentDate();
+        Date end  = timeService.getCurrentDate();
         calendar.setTime(end);
 
         switch (period) {
@@ -67,7 +66,7 @@ public class MetricsService {
             }
 
             case ALL_TIME -> {
-                calendar.add(Calendar.YEAR, -100);
+                calendar.setTime(new GregorianCalendar(1900, Calendar.JANUARY, 1).getTime());
                 start = calendar.getTime();
             }
 
@@ -77,10 +76,10 @@ public class MetricsService {
             }
         }
 
-        result.put(MetricsEnum.COLD_WATER, coldWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
-        result.put(MetricsEnum.HOT_WATER, hotWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
-        result.put(MetricsEnum.HEATING, heatingRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
-        result.put(MetricsEnum.ELECTRIC_POWER, electricPowerRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.put(MetricsType.COLD_WATER, coldWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.put(MetricsType.HOT_WATER, hotWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.put(MetricsType.HEATING, heatingRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.put(MetricsType.ELECTRIC_POWER, electricPowerRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
 
         return result;
     }
