@@ -1,4 +1,4 @@
-package HousingAndUtilitiesVisualizer.util;
+package HousingAndUtilitiesVisualizer.service;
 
 import com.gargoylesoftware.htmlunit.NicelyResynchronizingAjaxController;
 import com.gargoylesoftware.htmlunit.WebClient;
@@ -16,8 +16,8 @@ import java.net.URL;
 import java.util.HashMap;
 
 @Component
-public class AddressUtil {
-    Logger logger = LogManager.getLogger(AddressUtil.class);
+public class AddressService {
+    Logger logger = LogManager.getLogger(AddressService.class);
     private final String SEARCH_URL = "https://www.reformagkh.ru/search/houses?query=";
     private final String BASE_URL = "https://www.reformagkh.ru";
 
