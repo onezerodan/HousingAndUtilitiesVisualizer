@@ -4,9 +4,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.Date;
 
 @Service
@@ -30,5 +30,10 @@ public class TimeService {
         SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
         Date date = formatter.parse(dateStr);
         return date;
+    }
+
+    public String dateToStr(Date date) {
+        DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy ");
+        return dateFormat.format(date);
     }
 }
