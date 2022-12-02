@@ -3,9 +3,7 @@ package HousingAndUtilitiesVisualizer.bot;
 
 import HousingAndUtilitiesVisualizer.model.*;
 import HousingAndUtilitiesVisualizer.repository.UserRepository;
-import HousingAndUtilitiesVisualizer.service.MetricsService;
-import HousingAndUtilitiesVisualizer.service.TimeService;
-import HousingAndUtilitiesVisualizer.service.AddressService;
+import HousingAndUtilitiesVisualizer.service.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,13 +11,17 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,6 +46,9 @@ public class TgBot extends TelegramLongPollingBot {
 
     @Autowired
     MetricsService metricsService;
+
+    @Autowired
+    ChartService chartService;
 
     Logger log = LogManager.getLogger(TgBot.class);
 
@@ -100,6 +105,7 @@ public class TgBot extends TelegramLongPollingBot {
                         }
                     }
 
+
                 }
                 return;
             }
@@ -108,7 +114,7 @@ public class TgBot extends TelegramLongPollingBot {
         else if (update.hasCallbackQuery()) {
             try {
                 handleCallbackQuery(update.getCallbackQuery());
-            } catch (TelegramApiException e) {
+            } catch (TelegramApiException | FileNotFoundException e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -116,7 +122,7 @@ public class TgBot extends TelegramLongPollingBot {
 
     }
 
-    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException {
+    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException, FileNotFoundException {
         Long chatId = callbackQuery.getFrom().getId();
         String callbackData = callbackQuery.getData();
         User user = null;
@@ -158,6 +164,18 @@ public class TgBot extends TelegramLongPollingBot {
                 }
 
             }
+            case "stat" -> {
+                String data = callbackData.split(":")[1];
+                Period period = null;
+                switch (data) {
+                    case "week" -> period = Period.WEEK;
+                    case "two_weeks" -> period = Period.TWO_WEEKS;
+                    case "month" -> period = Period.MONTH;
+                    case "all_time" -> period = Period.ALL_TIME;
+                }
+
+                execute(sendStatImage(chatId, period));
+            }
         }
         sendAnswerCallbackQuery("", false, callbackQuery);
     }
@@ -169,7 +187,7 @@ public class TgBot extends TelegramLongPollingBot {
         String answerText = "Данные сохранены.";
 
         Class metricsClass = null;
-        // save data
+
         switch (userState.get(chatId)) {
             case ENTER_COLD_WATER_METRICS -> {
                 metricsClass = ColdWaterMetrics.class;
@@ -269,13 +287,7 @@ public class TgBot extends TelegramLongPollingBot {
 
     }
 
-    private void handleIncomingMetric(Message message) {
-        Long chatId = message.getChatId();
-        String text = message.getText().toLowerCase();
-        switch (userState.get(chatId)) {
-           // case ENTER_COLD_WATER_METRICS ->
-        }
-    }
+
 
     private void handleIncomingCommand(Message message) throws TelegramApiException {
         Long chatId = message.getChatId();
@@ -291,6 +303,9 @@ public class TgBot extends TelegramLongPollingBot {
             case "/enter" -> {
                 execute(onMetricsChooseCommand(chatId));
                 userState.remove(chatId);
+            }
+            case "/stat" -> {
+                execute(onPeriodChooseCommand(chatId));
             }
             case "/uk" -> {
                 if (userRepository.existsByChatId(chatId)) {
@@ -334,7 +349,7 @@ public class TgBot extends TelegramLongPollingBot {
 
         String text = """
                     Введите показания в формате:
-                    *xxx.xxx, dd-mm-yyy*,
+                    *xxx.xxx, dd-mm-yyyy*,
                     где
                     *xxx.xxx - показания прибора,*
                     *dd-mm-yyyy - дата снятия показаний*.
@@ -360,7 +375,7 @@ public class TgBot extends TelegramLongPollingBot {
                 userState.put(chatId, UserState.ENTER_ELECTRIC_POWER_METRICS);
                 text = """
                     Введите показания в формате:
-                    *xxx.xxx, yyy.yyy, dd-mm-yyy*,
+                    *xxx.xxx, yyy.yyy, dd-mm-yyyy*,
                     где
                     *xxx.xxx - показания прибора за день*,
                     *yyy.yyy - показания прибора за ночь*,
@@ -387,6 +402,24 @@ public class TgBot extends TelegramLongPollingBot {
         sendMessage.setText("Какие показания вы хотите внести?");
 
         return sendMessage;
+    }
+
+    private SendMessage onPeriodChooseCommand(Long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.enableMarkdown(true);
+        sendMessage.setChatId(chatId.toString());
+        sendMessage.setReplyMarkup(getPeriodChooseKeyboard());
+        sendMessage.setText("Выберете период, за который вы хотите посмотреть статистику.");
+
+        return sendMessage;
+    }
+
+    private SendPhoto sendStatImage(Long chatId, Period period) throws FileNotFoundException {
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(chatId);
+        System.out.println("from bot: " + period);
+        sendPhoto.setPhoto(new InputFile(chartService.getChart(chatId, period)));
+        return sendPhoto;
     }
 
     private SendMessage onAddressSuggestCommand(Long chatId, String address) {
@@ -467,6 +500,49 @@ public class TgBot extends TelegramLongPollingBot {
 
         List<InlineKeyboardButton> rowInline4 = new ArrayList<>();
         rowInline4.add(electricPowerButton);
+
+        rowsInline.add(rowInline);
+        rowsInline.add(rowInline2);
+        rowsInline.add(rowInline3);
+        rowsInline.add(rowInline4);
+
+        markupInline.setKeyboard(rowsInline);
+
+        return markupInline;
+    }
+
+    private InlineKeyboardMarkup getPeriodChooseKeyboard() {
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+        InlineKeyboardButton weekButton = new InlineKeyboardButton();
+        weekButton.setText("Неделя");
+        weekButton.setCallbackData("stat:week");
+
+        InlineKeyboardButton twoWeeksButton = new InlineKeyboardButton();
+        twoWeeksButton.setText("Две недели");
+        twoWeeksButton.setCallbackData("stat:two_weeks");
+
+        InlineKeyboardButton monthButton = new InlineKeyboardButton();
+        monthButton.setText("Месяц");
+        monthButton.setCallbackData("stat:month");
+
+        InlineKeyboardButton allTimeButton = new InlineKeyboardButton();
+        allTimeButton.setText("Всё время");
+        allTimeButton.setCallbackData("stat:all_time");
+
+        List<InlineKeyboardButton> rowInline = new ArrayList<>();
+        rowInline.add(weekButton);
+
+        List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
+        rowInline2.add(twoWeeksButton);
+
+        List<InlineKeyboardButton> rowInline3 = new ArrayList<>();
+        rowInline3.add(monthButton);
+
+        List<InlineKeyboardButton> rowInline4 = new ArrayList<>();
+        rowInline4.add(allTimeButton);
 
         rowsInline.add(rowInline);
         rowsInline.add(rowInline2);
