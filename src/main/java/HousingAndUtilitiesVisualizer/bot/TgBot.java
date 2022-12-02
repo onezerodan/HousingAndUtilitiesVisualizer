@@ -5,7 +5,7 @@ import HousingAndUtilitiesVisualizer.model.*;
 import HousingAndUtilitiesVisualizer.repository.UserRepository;
 import HousingAndUtilitiesVisualizer.service.MetricsService;
 import HousingAndUtilitiesVisualizer.service.TimeService;
-import HousingAndUtilitiesVisualizer.util.AddressUtil;
+import HousingAndUtilitiesVisualizer.service.AddressService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -35,7 +34,7 @@ public class TgBot extends TelegramLongPollingBot {
     BotConfig botConfig;
 
     @Autowired
-    AddressUtil addressUtil;
+    AddressService addressUtil;
 
     @Autowired
     TimeService timeService;
