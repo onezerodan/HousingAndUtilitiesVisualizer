@@ -20,6 +20,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -417,8 +418,8 @@ public class TgBot extends TelegramLongPollingBot {
     private SendPhoto sendStatImage(Long chatId, Period period) throws FileNotFoundException {
         SendPhoto sendPhoto = new SendPhoto();
         sendPhoto.setChatId(chatId);
-        System.out.println("from bot: " + period);
-        sendPhoto.setPhoto(new InputFile(chartService.getChart(chatId, period)));
+        File chart = chartService.getChart(chatId, period);
+        sendPhoto.setPhoto(new InputFile(chart));
         return sendPhoto;
     }
 
