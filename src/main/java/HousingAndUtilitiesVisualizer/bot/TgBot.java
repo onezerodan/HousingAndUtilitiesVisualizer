@@ -21,7 +21,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -165,6 +164,7 @@ public class TgBot extends TelegramLongPollingBot {
                 }
 
             }
+
             case "stat" -> {
                 String data = callbackData.split(":")[1];
                 Period period = null;
@@ -174,8 +174,33 @@ public class TgBot extends TelegramLongPollingBot {
                     case "month" -> period = Period.MONTH;
                     case "all_time" -> period = Period.ALL_TIME;
                 }
+                sendStatImage(chatId, period);
+            }
 
-                execute(sendStatImage(chatId, period));
+            case "moving" -> {
+                String data = callbackData.split(":")[1];
+                switch (data) {
+                    case "address" -> {
+                        user.setAddress(null);
+                        userRepository.save(user);
+                        sendMsg(chatId, "Адрес удалён. " +
+                                "Чтобы установить новый, просто отправьте команду /uk");
+                    }
+
+                    case "metrics" -> {
+                        metricsService.deleteAllByUserId(chatId);
+                        sendMsg(chatId, "Все показания удалены.");
+                    }
+
+                    case "both" -> {
+                        user.setAddress(null);
+                        userRepository.save(user);
+                        metricsService.deleteAllByUserId(chatId);
+                        sendMsg(chatId, "Адрес и показания удалены. " +
+                                "Начинайте пользоваться ботом с чистого листа :)");
+                    }
+                }
+
             }
         }
         sendAnswerCallbackQuery("", false, callbackQuery);
@@ -308,6 +333,9 @@ public class TgBot extends TelegramLongPollingBot {
             case "/stat" -> {
                 execute(onPeriodChooseCommand(chatId));
             }
+            case "/moving" -> {
+                execute(onMovingObtionsChooseCommand(chatId));
+            }
             case "/uk" -> {
                 if (userRepository.existsByChatId(chatId)) {
                     User user = userRepository.findByChatId(chatId);
@@ -344,6 +372,16 @@ public class TgBot extends TelegramLongPollingBot {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    private SendMessage onMovingObtionsChooseCommand(Long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.enableMarkdown(true);
+        sendMessage.setChatId(chatId.toString());
+        sendMessage.setReplyMarkup(getMovingOptionsKeyboard());
+        sendMessage.setText("Выберете данные, которые вы хотите удалить.");
+
+        return sendMessage;
     }
 
     private SendMessage onMetricsInputCommand(Long chatId, String chosenMetrics) {
@@ -415,12 +453,13 @@ public class TgBot extends TelegramLongPollingBot {
         return sendMessage;
     }
 
-    private SendPhoto sendStatImage(Long chatId, Period period) throws FileNotFoundException {
+    private void sendStatImage(Long chatId, Period period) throws FileNotFoundException, TelegramApiException {
         SendPhoto sendPhoto = new SendPhoto();
         sendPhoto.setChatId(chatId);
         File chart = chartService.getChart(chatId, period);
         sendPhoto.setPhoto(new InputFile(chart));
-        return sendPhoto;
+        execute(sendPhoto);
+        chartService.deleteFile(chart);
     }
 
     private SendMessage onAddressSuggestCommand(Long chatId, String address) {
@@ -549,6 +588,41 @@ public class TgBot extends TelegramLongPollingBot {
         rowsInline.add(rowInline2);
         rowsInline.add(rowInline3);
         rowsInline.add(rowInline4);
+
+        markupInline.setKeyboard(rowsInline);
+
+        return markupInline;
+    }
+
+    private InlineKeyboardMarkup getMovingOptionsKeyboard() {
+        InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+
+        List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+
+        InlineKeyboardButton removeAddressButton = new InlineKeyboardButton();
+        removeAddressButton.setText("Удалить текущий адрес");
+        removeAddressButton.setCallbackData("moving:address");
+
+        InlineKeyboardButton removeMetricsButton = new InlineKeyboardButton();
+        removeMetricsButton.setText("Удалить все показания");
+        removeMetricsButton.setCallbackData("moving:metrics");
+
+        InlineKeyboardButton removeAddressAndMetricsButton = new InlineKeyboardButton();
+        removeAddressAndMetricsButton.setText("Удалить адрес и показания");
+        removeAddressAndMetricsButton.setCallbackData("moving:both");
+
+        List<InlineKeyboardButton> rowInline = new ArrayList<>();
+        rowInline.add(removeAddressButton);
+
+        List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
+        rowInline2.add(removeMetricsButton);
+
+        List<InlineKeyboardButton> rowInline3 = new ArrayList<>();
+        rowInline3.add(removeAddressAndMetricsButton);
+
+        rowsInline.add(rowInline);
+        rowsInline.add(rowInline2);
+        rowsInline.add(rowInline3);
 
         markupInline.setKeyboard(rowsInline);
 

@@ -6,6 +6,7 @@ import HousingAndUtilitiesVisualizer.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.util.*;
 
 @Service
@@ -45,6 +46,14 @@ public class MetricsService {
         else if (metrics instanceof ElectricPowerMetrics) electricPowerRepository.save((ElectricPowerMetrics) metrics);
     }
 
+    @Transactional
+    public void deleteAllByUserId(Long userId) {
+        coldWaterRepository.deleteByUserChatId(userId);
+        hotWaterRepository.deleteByUserChatId(userId);
+        heatingRepository.deleteByUserChatId(userId);
+        electricPowerRepository.deleteByUserChatId(userId);
+    }
+
     public Map<MetricsType, List<?>> getMetricsForPeriod(Period period, User user) {
         Map<MetricsType, List<?>> result = new HashMap<>();
 
@@ -52,6 +61,7 @@ public class MetricsService {
 
         Date start = null;
         Date end  = timeService.getCurrentDate();
+
         calendar.setTime(end);
 
         switch (period) {

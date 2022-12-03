@@ -10,5 +10,5 @@ import java.util.List;
 @Repository
 public interface ElectricPowerRepository extends CrudRepository<ElectricPowerMetrics, Long> {
     List<ElectricPowerMetrics> findByDateAddedBetweenAndUserChatId(Date start, Date end, Long userId);
-
+    long deleteByUserChatId(Long userId);
 }

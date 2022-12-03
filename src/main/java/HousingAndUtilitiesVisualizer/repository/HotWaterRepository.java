@@ -10,5 +10,5 @@ import java.util.List;
 @Repository
 public interface HotWaterRepository extends CrudRepository<HotWaterMetrics, Long> {
     List<HotWaterMetrics> findByDateAddedBetweenAndUserChatId(Date start, Date end, Long userId);
-
+    long deleteByUserChatId(Long userId);
 }
