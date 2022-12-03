@@ -9,7 +9,9 @@ import org.jfree.chart.ChartColor;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.Dataset;
 import org.slf4j.LoggerFactory;
@@ -44,7 +46,7 @@ public class ChartService {
             MetricsType metricsType = entry.getKey();
             List<Metrics> metricsList = (List<Metrics>) entry.getValue();
 
-            metricsList.sort(comparing(Metrics::getDateAdded));
+            metricsList.sort((o1,o2) -> o1.getDateAdded().compareTo(o2.getDateAdded()));
             for (Metrics metrics : metricsList) {
                 if (metricsType == MetricsType.ELECTRIC_POWER) {
                     ElectricPowerMetrics electricMetrics = (ElectricPowerMetrics) metrics;
@@ -87,9 +89,17 @@ public class ChartService {
         );
 
         lineChart.setAntiAlias(false);
+        CategoryPlot plot = (CategoryPlot) lineChart.getPlot();
+        LineAndShapeRenderer r = (LineAndShapeRenderer) plot.getRenderer();
+        r.setShapesVisible(true);
         File file = new File("data/charts/stat-" + userId +".png");
         ChartUtilities.saveChartAsPNG(file, lineChart, 900, 600);
         return file;
+
+    }
+
+    public void deleteFile(File file) {
+        file.delete();
     }
 
 
