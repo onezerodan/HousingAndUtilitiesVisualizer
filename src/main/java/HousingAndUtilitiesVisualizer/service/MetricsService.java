@@ -54,42 +54,44 @@ public class MetricsService {
         electricPowerRepository.deleteByUserChatId(userId);
     }
 
-    public Map<MetricsType, List<?>> getMetricsForPeriod(Period period, User user) {
-        Map<MetricsType, List<?>> result = new HashMap<>();
+    public List<Metrics> getMetricsForPeriod(Period period, User user) {
+        List<Metrics> result = new ArrayList<>();
 
         Calendar calendar = Calendar.getInstance();
 
-        Date start = null;
         Date end  = timeService.getCurrentDate();
 
         calendar.setTime(end);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
 
         switch (period) {
-            case WEEK -> {
-                calendar.add(Calendar.WEEK_OF_MONTH, -1);
-                start = calendar.getTime();
-            }
-
             case MONTH -> {
                 calendar.add(Calendar.MONTH, -1);
-                start = calendar.getTime();
+            }
+
+            case THREE_MONTHS -> {
+                calendar.add(Calendar.MONTH, -2);
+            }
+
+            case SIX_MONTHS -> {
+                calendar.add(Calendar.MONTH, -5);
+            }
+
+            case YEAR -> {
+                calendar.add(Calendar.YEAR, -1);
             }
 
             case ALL_TIME -> {
                 calendar.setTime(new GregorianCalendar(1900, Calendar.JANUARY, 1).getTime());
-                start = calendar.getTime();
-            }
-
-            case TWO_WEEKS -> {
-                calendar.add(Calendar.WEEK_OF_MONTH, -2);
-                start = calendar.getTime();
             }
         }
 
-        result.put(MetricsType.COLD_WATER, coldWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
-        result.put(MetricsType.HOT_WATER, hotWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
-        result.put(MetricsType.HEATING, heatingRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
-        result.put(MetricsType.ELECTRIC_POWER, electricPowerRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        Date start = calendar.getTime();
+
+        result.addAll(coldWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.addAll(hotWaterRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.addAll(heatingRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
+        result.addAll(electricPowerRepository.findByDateAddedBetweenAndUserChatId(start, end, user.getId()));
 
         return result;
     }

@@ -21,7 +21,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -114,7 +114,7 @@ public class TgBot extends TelegramLongPollingBot {
         else if (update.hasCallbackQuery()) {
             try {
                 handleCallbackQuery(update.getCallbackQuery());
-            } catch (TelegramApiException | FileNotFoundException e) {
+            } catch (TelegramApiException | IOException e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -122,7 +122,7 @@ public class TgBot extends TelegramLongPollingBot {
 
     }
 
-    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException, FileNotFoundException {
+    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException, IOException {
         Long chatId = callbackQuery.getFrom().getId();
         String callbackData = callbackQuery.getData();
         User user = null;
@@ -169,9 +169,10 @@ public class TgBot extends TelegramLongPollingBot {
                 String data = callbackData.split(":")[1];
                 Period period = null;
                 switch (data) {
-                    case "week" -> period = Period.WEEK;
-                    case "two_weeks" -> period = Period.TWO_WEEKS;
                     case "month" -> period = Period.MONTH;
+                    case "three_months" -> period = Period.THREE_MONTHS;
+                    case "six_months" -> period = Period.SIX_MONTHS;
+                    case "year" -> period = Period.YEAR;
                     case "all_time" -> period = Period.ALL_TIME;
                 }
                 sendStatImage(chatId, period);
@@ -453,7 +454,7 @@ public class TgBot extends TelegramLongPollingBot {
         return sendMessage;
     }
 
-    private void sendStatImage(Long chatId, Period period) throws FileNotFoundException, TelegramApiException {
+    private void sendStatImage(Long chatId, Period period) throws IOException, TelegramApiException {
         SendPhoto sendPhoto = new SendPhoto();
         sendPhoto.setChatId(chatId);
         File chart = chartService.getChart(chatId, period);
@@ -556,38 +557,46 @@ public class TgBot extends TelegramLongPollingBot {
 
         List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
 
-        InlineKeyboardButton weekButton = new InlineKeyboardButton();
-        weekButton.setText("Неделя");
-        weekButton.setCallbackData("stat:week");
-
-        InlineKeyboardButton twoWeeksButton = new InlineKeyboardButton();
-        twoWeeksButton.setText("Две недели");
-        twoWeeksButton.setCallbackData("stat:two_weeks");
-
         InlineKeyboardButton monthButton = new InlineKeyboardButton();
-        monthButton.setText("Месяц");
+        monthButton.setText("Текущий + предыдущий месяцы");
         monthButton.setCallbackData("stat:month");
+
+        InlineKeyboardButton threeMonthsButton = new InlineKeyboardButton();
+        threeMonthsButton.setText("3 месяца");
+        threeMonthsButton.setCallbackData("stat:three_months");
+
+        InlineKeyboardButton sixMonthsButton = new InlineKeyboardButton();
+        sixMonthsButton.setText("Полгода");
+        sixMonthsButton.setCallbackData("stat:six_months");
+
+        InlineKeyboardButton yearButton = new InlineKeyboardButton();
+        yearButton.setText("Год");
+        yearButton.setCallbackData("stat:year");
 
         InlineKeyboardButton allTimeButton = new InlineKeyboardButton();
         allTimeButton.setText("Всё время");
         allTimeButton.setCallbackData("stat:all_time");
 
         List<InlineKeyboardButton> rowInline = new ArrayList<>();
-        rowInline.add(weekButton);
+        rowInline.add(monthButton);
 
         List<InlineKeyboardButton> rowInline2 = new ArrayList<>();
-        rowInline2.add(twoWeeksButton);
+        rowInline2.add(threeMonthsButton);
 
         List<InlineKeyboardButton> rowInline3 = new ArrayList<>();
-        rowInline3.add(monthButton);
+        rowInline3.add(sixMonthsButton);
 
         List<InlineKeyboardButton> rowInline4 = new ArrayList<>();
-        rowInline4.add(allTimeButton);
+        rowInline4.add(yearButton);
+
+        List<InlineKeyboardButton> rowInline5 = new ArrayList<>();
+        rowInline5.add(allTimeButton);
 
         rowsInline.add(rowInline);
         rowsInline.add(rowInline2);
         rowsInline.add(rowInline3);
         rowsInline.add(rowInline4);
+        rowsInline.add(rowInline5);
 
         markupInline.setKeyboard(rowsInline);
 

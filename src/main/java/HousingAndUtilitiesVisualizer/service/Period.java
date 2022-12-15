@@ -1,8 +1,9 @@
 package HousingAndUtilitiesVisualizer.service;
 
 public enum Period {
-    WEEK,
-    TWO_WEEKS,
     MONTH,
+    THREE_MONTHS,
+    SIX_MONTHS,
+    YEAR,
     ALL_TIME
 }
