@@ -4,6 +4,7 @@ package HousingAndUtilitiesVisualizer.bot;
 import HousingAndUtilitiesVisualizer.model.*;
 import HousingAndUtilitiesVisualizer.repository.UserRepository;
 import HousingAndUtilitiesVisualizer.service.*;
+import javassist.NotFoundException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +72,7 @@ public class TgBot extends TelegramLongPollingBot {
             Long chatId = update.getMessage().getChatId();
             String text = update.getMessage().getText();
 
-            log.info("NEW MESSAGE from: " + chatId + " text:" + text);
+            log.info("NEW MESSAGE from: " + chatId + " text: " + text);
 
 
 
@@ -114,7 +115,7 @@ public class TgBot extends TelegramLongPollingBot {
         else if (update.hasCallbackQuery()) {
             try {
                 handleCallbackQuery(update.getCallbackQuery());
-            } catch (TelegramApiException | IOException e) {
+            } catch (TelegramApiException | IOException | NotFoundException e) {
                 log.error(e.getMessage(), e);
             }
         }
@@ -122,15 +123,13 @@ public class TgBot extends TelegramLongPollingBot {
 
     }
 
-    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException, IOException {
+    private void handleCallbackQuery(CallbackQuery callbackQuery) throws TelegramApiException, IOException, NotFoundException {
         Long chatId = callbackQuery.getFrom().getId();
         String callbackData = callbackQuery.getData();
-        User user = null;
 
-        if (!userRepository.existsByChatId(chatId)) {
-            user = new User(chatId);
-            userRepository.save(user);
-        } else user = userRepository.findByChatId(chatId);
+        User user = userRepository.findByChatId(chatId).orElse(null);
+        if (user == null) userRepository.save(new User(chatId));
+
 
         switch (callbackData.split(":")[0]) {
             case "addr" -> {
@@ -247,13 +246,15 @@ public class TgBot extends TelegramLongPollingBot {
         } catch (IllegalArgumentException e) {
             sendMsg(chatId, "Данные введены неверно.");
             return;
+        } catch (NotFoundException e) {
+            log.error(e.getMessage(), e);
         }
         metricsService.save(parsedMetrics);
         sendMsg(chatId, answerText);
     }
 
-    private Metrics parseMetrics(Class metricsClass, String text, Long chatId) throws IllegalArgumentException{
-        User user = userRepository.findByChatId(chatId);
+    private Metrics parseMetrics(Class metricsClass, String text, Long chatId) throws IllegalArgumentException, NotFoundException {
+        User user = userRepository.findByChatId(chatId).orElseThrow(() ->new NotFoundException("User not found"));
         String[] textMetrics = text.split(",");
 
 
@@ -322,10 +323,9 @@ public class TgBot extends TelegramLongPollingBot {
 
         switch (text) {
             case "/start" -> {
-                if (!userRepository.existsByChatId(chatId)) {
-                    User user = new User(chatId);
-                    userRepository.save(user);
-                }
+
+                User user = userRepository.findByChatId(chatId).orElse(null);
+                if (user == null) userRepository.save(new User(chatId));
             }
             case "/enter" -> {
                 execute(onMetricsChooseCommand(chatId));
@@ -338,8 +338,9 @@ public class TgBot extends TelegramLongPollingBot {
                 execute(onMovingObtionsChooseCommand(chatId));
             }
             case "/uk" -> {
-                if (userRepository.existsByChatId(chatId)) {
-                    User user = userRepository.findByChatId(chatId);
+                User user = userRepository.findByChatId(chatId).orElse(null);
+
+                if (user != null) {
                     String mngmtCompanyUrl = user.getAddress();
                     if (mngmtCompanyUrl != null) {
                         sendMsg(chatId, addressUtil.getManagementCompanyInfo(mngmtCompanyUrl));
@@ -454,7 +455,7 @@ public class TgBot extends TelegramLongPollingBot {
         return sendMessage;
     }
 
-    private void sendStatImage(Long chatId, Period period) throws IOException, TelegramApiException {
+    private void sendStatImage(Long chatId, Period period) throws IOException, TelegramApiException, NotFoundException {
         SendPhoto sendPhoto = new SendPhoto();
         sendPhoto.setChatId(chatId);
         File chart = chartService.getChart(chatId, period);
