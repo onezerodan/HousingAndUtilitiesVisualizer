@@ -3,6 +3,7 @@ package HousingAndUtilitiesVisualizer.service;
 
 import HousingAndUtilitiesVisualizer.model.*;
 import HousingAndUtilitiesVisualizer.repository.*;
+import javassist.NotFoundException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jfree.chart.ChartFactory;
@@ -36,7 +37,7 @@ public class ChartService {
 
     Logger log = LogManager.getLogger(ChartService.class);
 
-    public File getChart(Long userId, Period period) throws IOException {
+    public File getChart(Long userId, Period period) throws IOException, NotFoundException {
         String periodStr = "";
         switch (period) {
             case YEAR -> periodStr = "за 1 год";
@@ -50,9 +51,9 @@ public class ChartService {
         JFreeChart chart = drawChart(dataset, "Потребление ЖКУ за " + periodStr);
         return saveChart(chart, userId);
     }
-    private TimeSeriesCollection createDataset(Long userId, Period period) {
+    private TimeSeriesCollection createDataset(Long userId, Period period) throws NotFoundException {
 
-        User user = userRepository.findByChatId(userId);
+        User user = userRepository.findByChatId(userId).orElseThrow(() -> new NotFoundException("User not found"));
 
         TimeSeries coldWaterSeries = new TimeSeries("Холодная вода");
         TimeSeries hotWaterSeries = new TimeSeries("Горячая вода");
@@ -77,7 +78,6 @@ public class ChartService {
             } else if (metrics instanceof HeatingMetrics) {
                 heatingSeries.add(new Day(metrics.getDateAdded()), metrics.getValue());
             }
-            System.out.println(metrics.getDateAdded());
         }
 
         TimeSeriesCollection timeSeries = new TimeSeriesCollection();
