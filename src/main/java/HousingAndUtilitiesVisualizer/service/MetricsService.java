@@ -40,10 +40,45 @@ public class MetricsService {
     }
 
     public void save(Metrics metrics) {
-        if (metrics instanceof ColdWaterMetrics) coldWaterRepository.save((ColdWaterMetrics) metrics);
-        else if (metrics instanceof HotWaterMetrics) hotWaterRepository.save((HotWaterMetrics) metrics);
-        else if (metrics instanceof HeatingMetrics) heatingRepository.save((HeatingMetrics) metrics);
-        else if (metrics instanceof ElectricPowerMetrics) electricPowerRepository.save((ElectricPowerMetrics) metrics);
+        if (metrics instanceof ColdWaterMetrics) {
+
+            coldWaterRepository
+                    .findByDateAddedAndUserChatId(metrics.getDateAdded(), metrics.getUser().getId())
+                    .map(coldWaterMetrics ->
+                    {
+                        coldWaterMetrics.setValue(metrics.getValue());
+                        return coldWaterRepository.save(coldWaterMetrics);
+                    })
+                    .orElseGet(() -> coldWaterRepository.save((ColdWaterMetrics) metrics));
+            //if (coldWaterMetrics == null) coldWaterMetrics = (ColdWaterMetrics) metrics;
+            //else coldWaterMetrics.setValue(metrics.getValue());
+            //coldWaterRepository.save(coldWaterMetrics);
+
+        }
+        else if (metrics instanceof HotWaterMetrics) {
+            HotWaterMetrics hotWaterMetrics = hotWaterRepository
+                    .findByDateAddedAndUserChatId(metrics.getDateAdded(), metrics.getUser().getId())
+                    .orElse(null);
+            if (hotWaterMetrics == null) hotWaterMetrics = (HotWaterMetrics) metrics;
+            else hotWaterMetrics.setValue(metrics.getValue());
+            hotWaterRepository.save(hotWaterMetrics);
+        }
+        else if (metrics instanceof HeatingMetrics) {
+            HeatingMetrics heatingMetrics = heatingRepository
+                    .findByDateAddedAndUserChatId(metrics.getDateAdded(), metrics.getUser().getId())
+                    .orElse(null);
+            if (heatingMetrics == null) heatingMetrics = (HeatingMetrics) metrics;
+            else heatingMetrics.setValue(metrics.getValue());
+            heatingRepository.save(heatingMetrics);
+        }
+        else if (metrics instanceof ElectricPowerMetrics) {
+            ElectricPowerMetrics electricPowerMetrics = electricPowerRepository
+                    .findByDateAddedAndUserChatId(metrics.getDateAdded(), metrics.getUser().getId())
+                    .orElse(null);
+            if (electricPowerMetrics == null) electricPowerMetrics = (ElectricPowerMetrics) metrics;
+            else electricPowerMetrics.setValue(metrics.getValue());
+            electricPowerRepository.save(electricPowerMetrics);
+        }
     }
 
     @Transactional
