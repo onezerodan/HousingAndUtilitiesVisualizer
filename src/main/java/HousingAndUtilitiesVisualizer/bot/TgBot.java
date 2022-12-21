@@ -381,7 +381,7 @@ public class TgBot extends TelegramLongPollingBot {
         sendMessage.enableMarkdown(true);
         sendMessage.setChatId(chatId.toString());
         sendMessage.setReplyMarkup(getMovingOptionsKeyboard());
-        sendMessage.setText("Выберете данные, которые вы хотите удалить.");
+        sendMessage.setText("Выберите данные, которые вы хотите удалить.");
 
         return sendMessage;
     }
@@ -450,7 +450,7 @@ public class TgBot extends TelegramLongPollingBot {
         sendMessage.enableMarkdown(true);
         sendMessage.setChatId(chatId.toString());
         sendMessage.setReplyMarkup(getPeriodChooseKeyboard());
-        sendMessage.setText("Выберете период, за который вы хотите посмотреть статистику.");
+        sendMessage.setText("Выберите период, за который вы хотите посмотреть статистику.");
 
         return sendMessage;
     }
