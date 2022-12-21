@@ -115,7 +115,7 @@ public class ChartService {
             switch (name) {
                 case "Холодная вода" -> renderer.setSeriesPaint(index,Color.BLUE);
                 case "Горячая вода" -> renderer.setSeriesPaint(index, Color.RED);
-                case "Отопление" -> renderer.setSeriesPaint(index, Color.ORANGE);
+                case "Отопление" -> renderer.setSeriesPaint(index, Color.YELLOW);
                 case "Электроэнергия день" -> renderer.setSeriesPaint(index, Color.GREEN);
                 case "Электроэнергия ночь" -> renderer.setSeriesPaint(index, Color.CYAN);
             }
@@ -124,11 +124,11 @@ public class ChartService {
         DateAxis dateAxis = new DateAxis();
         dateAxis.setDateFormatOverride(new SimpleDateFormat("MMM yyyy", new Locale("ru")));
         dateAxis.setTickUnit(new DateTickUnit(DateTickUnitType.MONTH, 1));
+        dateAxis.setVerticalTickLabels(true);
 
         plot.setDomainAxis(dateAxis);
 
         chart.setAntiAlias(false);
-
 
         renderer.setBaseShapesVisible(true);
         renderer.setBaseLinesVisible(true);
